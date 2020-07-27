@@ -1,13 +1,11 @@
 import requests
 import json
 import os
+import names
 from random import randrange
 
 def generateRandomAuthorName():
-    h = hash(randrange(0, 2281377))
-    if (type(h) is str):
-        return h
-    return str(h)
+    return names.get_full_name()
 
 def GetLinksList():
     """from links.json file"""
@@ -22,7 +20,7 @@ def GetChanelIdByStreamDjLink(link):
     endIndex = responce.index(")", startIndex)
     return responce[startIndex:endIndex]
 
-def SendMusic(chanelID, youtubeURL) -> bool:
+def SendMusic(chanelID, youtubeURL) -> str:
     data = {
         "url": youtubeURL,
         "author": generateRandomAuthorName(),

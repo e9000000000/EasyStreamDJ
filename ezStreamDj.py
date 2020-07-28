@@ -10,7 +10,7 @@ def main():
     print("    1) sending by typing url")
     print("    2) sending step by step by url from links.json")
     print("    3) sending all by url from links.json")
-    print("    4) sending all by url from links.json")
+    print("    4) sending all from youtube playlis")
     print("")
 
     while 1:

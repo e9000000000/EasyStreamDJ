@@ -25,7 +25,7 @@ def main():
             elif inp == 4:
                 AllFromYoutubePlaylist.main()
             else:
-                print("enter a number from 1 to 3")
+                print("enter a number from 1 to 4")
                 continue
 
         except:

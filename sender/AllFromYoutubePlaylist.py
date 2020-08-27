@@ -1,11 +1,9 @@
-API_KEY = ''
-
-
 import requests
 import json
 import threading
 
-from sender.Sender import GetChanelIdByStreamDjLink, SendMusic
+from config import API_KEY
+from . import send_music
 
 
 class YtVideo():
@@ -16,9 +14,9 @@ class YtVideo():
     def GetUrl(self):
         return f'https://www.youtube.com/watch?v={self.id}'
 
-def GetYtVideosFromJson(js):
+def get_videos_from_json(jsn):
     videos = []
-    items = js['items']
+    items = jsn['items']
     for item in items:
         video = YtVideo(item['snippet']['resourceId']['videoId'], item['snippet']['title'])
         videos.append(video)
@@ -29,13 +27,11 @@ def GetVideosFromPlaylist(listID):
     nextPageToken = ''
 
     while 1:
-        r = requests.get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults={50}&pageToken={nextPageToken}&playlistId={listID}&key={API_KEY}')
-        js = json.loads(r.text)
-        videos += GetYtVideosFromJson(js)
+        response = requests.get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults={50}&pageToken={nextPageToken}&playlistId={listID}&key={API_KEY}')
+        jsn = json.loads(response.text)
+        videos += get_videos_from_json(jsn)
         
-        try:
-            nextPageToken = js['nextPageToken']
-        except:
+        if 'nextPageToken' not in jsn:
             break
 
     return videos
@@ -43,13 +39,15 @@ def GetVideosFromPlaylist(listID):
 
 def main():
     playlistID = input('youtube playlist id: ')
-    chanelId = GetChanelIdByStreamDjLink(input('streamDJ link: '))
+    chanel_name = input('streamDJ chanel_name: ')
     videos = GetVideosFromPlaylist(playlistID)
+    threads = []
 
     for video in videos:
-        def send():
-            print(f'{video.title}: {SendMusic(chanelId, video.GetUrl())}')
-        threading.Thread(target=send).start()
+        thread = threading.Thread(target=print, args=(f'{video.title}: {send_music(chanel_name, video.GetUrl())}',))
+        thread.start()
+
+        threads.append(thread)
 
         
 

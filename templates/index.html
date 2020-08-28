@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="../static/style.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="../static/script.js"></script>
+    <title>ezStreamDj</title>
+</head>
+<body>
+    <div class="p-4">
+        <h1 class="header pb-2">Easy streamDj</h1>
+        <form class="">
+            <div class="input-group mb-1">
+                <div class="input-group-prepend">
+                <span class="input-group-text" id="basic-addon1">stream.dj/c/</span>
+                </div>
+                <input id="chanel_name" type="text" class="form-control" placeholder="chanel name">
+            </div>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                <span class="input-group-text" id="basic-addon1">youtube.com/playlist?list=</span>
+                </div>
+                <input id="playlist_id" type="text" class="form-control" placeholder="youtube playlist id">
+            </div>
+            <div class="input-group input-group-sm mb-1">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" id="inputGroup-sizing-sm">Cooldown between sending</span>
+                </div>
+                <input id="cooldown" value="0" type="number" class="form-control">
+            </div>
+
+            <button onclick="start_btn_click()" id="send" class="btn btn-primary" type="button">Start</button>
+        </form>
+
+        <div class="results p-4">
+            <nav>
+                <ul id="results_list" class="list-group">
+                </ul>
+            </nav>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,5 +1,6 @@
 # EasyStreamDJ
 Закидывай треки плейлистами! Так удобнее и быстрее.
+---
 ![](https://image.prntscr.com/image/9hhdgqcwTqyFymP-t1BaXA.png)
 
 ## Подготовка к использованию

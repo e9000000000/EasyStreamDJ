@@ -1,6 +1,7 @@
 import requests
 import json
 import threading
+from time import sleep
 
 from config import API_KEY
 from . import send_music
@@ -14,7 +15,7 @@ class YtVideo():
     def GetUrl(self):
         return f'https://www.youtube.com/watch?v={self.id}'
 
-def get_videos_from_json(jsn):
+def __get_videos_from_json(jsn):
     videos = []
     items = jsn['items']
     for item in items:
@@ -22,7 +23,7 @@ def get_videos_from_json(jsn):
         videos.append(video)
     return videos
 
-def get_videos_from_playlist(listID):
+def __get_videos_from_playlist(listID):
     videos = []
     nextPageToken = ''
 
@@ -37,7 +38,7 @@ def get_videos_from_playlist(listID):
             return []
         
         jsn = json.loads(response.text)
-        videos += get_videos_from_json(jsn)
+        videos += __get_videos_from_json(jsn)
         
         if 'nextPageToken' not in jsn:
             break
@@ -47,24 +48,32 @@ def get_videos_from_playlist(listID):
     return videos
 
 
-def send_and_print_result(chanel_name, video):
-    result = send_music(chanel_name, video.GetUrl())
+def __send(result_list, channel_name, video):
+    result = send_music(channel_name, video.GetUrl())
     readable_result = f'{list(result.keys())[0]} {list(result.values())[0]}'
 
-    print(f'{video.title}: {readable_result}')
+    result_list.append(f'{video.title}: {readable_result}')
 
-def main():
-    playlistID = input('youtube playlist id: ')
-    chanel_name = input('streamDJ chanel_name: ')
-    videos = get_videos_from_playlist(playlistID)
-
+def __send_all(results, channel_name:str, videos, cooldown:int):
     for video in videos:
-        thread = threading.Thread(target=send_and_print_result, args=(chanel_name, video))
-        thread.start()
-        
+        threading.Thread(target=__send, args=(results, channel_name, video)).start()
+        sleep(cooldown)
 
-    
+def process_results(results, max_lenght):
+    already_yielded_count = 0
+    while results.__len__() < max_lenght:
+        for i in range(already_yielded_count, results.__len__()):
+            yield results[i]
+            already_yielded_count += 1
+        sleep(0.05)
 
 
-if __name__ == '__main__':
-    main()
+def send_from_playlist(channel_name:str, playlistID:str, cooldown:int):
+    videos = __get_videos_from_playlist(playlistID)
+    results = []
+
+    threading.Thread(target=__send_all, args=(results, channel_name, videos, cooldown)).start()
+
+    for result in process_results(results, videos.__len__()):
+        yield result
+

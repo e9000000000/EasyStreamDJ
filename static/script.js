@@ -7,10 +7,17 @@ function add_result(result) {
     list.insertBefore(entry, list.firstChild);
 }
 
-function start_btn_click() {
-    var chanel_name = document.getElementById('chanel_name').value;
-    var playlist_id = document.getElementById('playlist_id').value;
-    var cooldown = document.getElementById('cooldown').value;
+var socket = io.connect('http://127.0.0.1:13666');
+socket.on('message', function(msg) {
+    add_result(msg)
+});
 
-    add_result('not working for now');
+function start_btn_click() {
+    var data = {
+        'channel_name': document.getElementById('channel_name').value,
+        'playlist_id': document.getElementById('playlist_id').value,
+        'cooldown': document.getElementById('cooldown').value
+    }
+
+    socket.send('send ' + JSON.stringify(data))
 }

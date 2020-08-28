@@ -1,6 +1,7 @@
 from flask import Flask, request, render_template, jsonify, redirect, url_for
 from flask_socketio import SocketIO, send
 import json
+import webbrowser
 
 import sender.from_yt_playlist
 from config import HOST, PORT, API_KEY
@@ -43,4 +44,5 @@ def settings():
 
 if __name__ == '__main__':
     app.env = 'development'
+    webbrowser.open(f'http://{HOST}:{PORT}')
     socketio.run(app, host=HOST, port=PORT)

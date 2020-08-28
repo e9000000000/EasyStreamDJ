@@ -22,4 +22,4 @@ def send_music(chanel_name, youtube_url) -> str:
 
     responce = requests.post("https://streamdj.ru/includes/back.php?func=add_track&channel=" + __get_chanelId(chanel_name), data=data)
     responce = json.loads(responce.text)
-    return responce.__str__()
+    return responce

@@ -22,47 +22,45 @@ def get_videos_from_json(jsn):
         videos.append(video)
     return videos
 
-def GetVideosFromPlaylist(listID):
+def get_videos_from_playlist(listID):
     videos = []
     nextPageToken = ''
 
     while 1:
         try:
-            print(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet'
+            response = requests.get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet'
                 + f'&maxResults={50}'
                 + f'&pageToken={nextPageToken}'
                 + f'&playlistId={listID}'
-                + f'&key={API_KEY}')
-            response = requests.get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet\
-                &maxResults={50}\
-                &pageToken={nextPageToken}\
-                &playlistId={listID}\
-                &key={API_KEY}', timeout=7)
+                + f'&key={API_KEY}', timeout=7)
         except TimeoutError:
             return []
         
         jsn = json.loads(response.text)
-        print(jsn)
         videos += get_videos_from_json(jsn)
         
         if 'nextPageToken' not in jsn:
             break
+        else:
+            nextPageToken = jsn['nextPageToken']
 
     return videos
 
 
+def send_and_print_result(chanel_name, video):
+    result = send_music(chanel_name, video.GetUrl())
+    readable_result = f'{list(result.keys())[0]} {list(result.values())[0]}'
+
+    print(f'{video.title}: {readable_result}')
+
 def main():
     playlistID = input('youtube playlist id: ')
     chanel_name = input('streamDJ chanel_name: ')
-    videos = GetVideosFromPlaylist(playlistID)
-    threads = []
+    videos = get_videos_from_playlist(playlistID)
 
     for video in videos:
-        thread = threading.Thread(target=print, args=(f'{video.title}: {send_music(chanel_name, video.GetUrl())}',))
+        thread = threading.Thread(target=send_and_print_result, args=(chanel_name, video))
         thread.start()
-
-        threads.append(thread)
-
         
 
     

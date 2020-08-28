@@ -27,8 +27,22 @@ def GetVideosFromPlaylist(listID):
     nextPageToken = ''
 
     while 1:
-        response = requests.get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults={50}&pageToken={nextPageToken}&playlistId={listID}&key={API_KEY}')
+        try:
+            print(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet'
+                + f'&maxResults={50}'
+                + f'&pageToken={nextPageToken}'
+                + f'&playlistId={listID}'
+                + f'&key={API_KEY}')
+            response = requests.get(f'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet\
+                &maxResults={50}\
+                &pageToken={nextPageToken}\
+                &playlistId={listID}\
+                &key={API_KEY}', timeout=7)
+        except TimeoutError:
+            return []
+        
         jsn = json.loads(response.text)
+        print(jsn)
         videos += get_videos_from_json(jsn)
         
         if 'nextPageToken' not in jsn:

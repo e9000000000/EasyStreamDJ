@@ -1,8 +1,10 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, jsonify, redirect, url_for
 from flask_socketio import SocketIO, send
 import json
 
 import sender.from_yt_playlist
+from config import HOST, PORT, API_KEY
+from utils import change_api_key_in_config
 
 
 app = Flask(__name__)
@@ -11,7 +13,9 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    if API_KEY == '':
+        return redirect(url_for('settings'))
+    return render_template('index.html', host=HOST, port=PORT)
 
 @socketio.on('message')
 def handle_message(message:str):
@@ -24,6 +28,19 @@ def handle_message(message:str):
             send(result)
 
 
+@app.route('/settings/', methods=['GET', 'POST'])
+def settings():
+    global API_KEY
+    if request.method == 'POST':
+        api_key = request.form['api_key']
+        change_api_key_in_config(api_key)
+        API_KEY = api_key
+
+        return redirect(url_for('index'))
+    else:
+        return render_template('settings.html')
+
+
 if __name__ == '__main__':
     app.env = 'development'
-    socketio.run(app, port=13666)
+    socketio.run(app, host=HOST, port=PORT)

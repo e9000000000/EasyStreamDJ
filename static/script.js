@@ -7,7 +7,7 @@ function add_result(result) {
     list.insertBefore(entry, list.firstChild);
 }
 
-var socket = io.connect('http://127.0.0.1:13666');
+var socket = io.connect(HOST + ':' + PORT);
 socket.on('message', function(msg) {
     add_result(msg)
 });

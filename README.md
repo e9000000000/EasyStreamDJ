@@ -1,13 +1,11 @@
 # EasyStreamDJ
-Закидывай треки плейлистами! Так удобнее и быстрее.
+Now you can send all playlist of music with one click.
 ---
 ![](https://image.prntscr.com/image/9hhdgqcwTqyFymP-t1BaXA.png)
 
-## Подготовка к использованию
-1. Скачать [python](https://www.python.org/downloads/)
-2. Установить дополнительные библиотеки `pip install flask flask-socketio eventlet requests names`
-
-## Использование
-1. Запустить `ezStreamDj.py`
-2. При первом запуски надо будет ввести свой [google API ключ](https://developers.google.com/youtube/registering_an_application)
-3. Приступить к использованию
+## How to use
+1. Install [python](https://www.python.org/downloads/)
+2. Download ez stream dj `git clone https://github.com/e6000000000/EasyStreamDJ.git`
+3. Install requarements `python3 -m pip install -r EasyStreamDJ/requarements.txt`
+4. Run `python3 ezStreamDj.py`
+5. For a first fime you should enter your [google API key](https://developers.google.com/youtube/registering_an_application)

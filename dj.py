@@ -204,11 +204,10 @@ Wellcome to easy stream dj.
         print(result_str)
 
     def _check_if_sending_ended(self):
-        while 1:
-            for thread in self._threads:
-                if thread.isAlive():
-                    return False
-            return True
+        for thread in self._threads:
+            if thread.is_alive():
+                return False
+        return True
 
     def _loop(self):
         print()
@@ -228,11 +227,10 @@ Wellcome to easy stream dj.
 
         videos = YtPlaylist(self._api_key, playlist).videos
         dj = StreamDj(channel_name)
-        self.threads = []
         self._is_sending_ended = False
         for video in videos:
             thread = threading.Thread(target=self._send_request_and_print_result, args=(dj, video))
-            self.threads.append(thread)
+            self._threads.append(thread)
             thread.start()
             sleep(cooldown)
 

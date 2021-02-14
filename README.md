@@ -13,11 +13,11 @@ python3 -m pip install -r requirements.txt
 # Using
 set env variable `GOOGLE_API_KEY` to your [google API key](https://developers.google.com/youtube/registering_an_application) 
 ```bash
-python3 dj.py
+python3 main.py
 ```
 
 ## If you need help
 ```bash
-python3 dj.py -h
+python3 main.py -h
 ```
 

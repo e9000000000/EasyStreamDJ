@@ -10,8 +10,7 @@ cd EasyStreamDJ
 python3 -m pip install -r requirements.txt
 ```
 
-# Using
-set env variable `GOOGLE_API_KEY` to your [google API key](https://developers.google.com/youtube/registering_an_application) 
+# How to run
 ```bash
 python3 main.py
 ```

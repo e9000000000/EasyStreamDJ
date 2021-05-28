@@ -14,13 +14,10 @@ class Ui():
     _hello_message = 'Wellcome to easy stream dj.'
     _help_message = '''
     Wellcome to easy stream dj.
-    
-    Need to do for script working:
-        Set env variable "GOOGLE_API_KEY" to your google API key.
 
     dj.py
 
-    [any args]      print this message    
+    [any args]      print this message
 
     After script runing:
         channel name: nickname of streamdj user
@@ -34,7 +31,7 @@ class Ui():
 
 
         If you leave some of this blank it will be replaced by default that shows you.
-                
+
     '''
 
     def __init__(self):
@@ -87,7 +84,7 @@ class Ui():
         self._ex_channel_name = channel_name
         self._ex_cooldown = cooldown
 
-        videos = Playlist(playlist).videos
+        videos = Playlist(playlist).get_videos()
         dj = StreamDj(channel_name)
         self._is_sending_ended = False
         for video in videos:
@@ -95,7 +92,8 @@ class Ui():
             self._threads.append(thread)
             thread.start()
             sleep(cooldown)
-
         
         while not self._check_if_sending_ended():
+            print(len(self._threads))
             sleep(1)
+        print('ENDED')

@@ -3,10 +3,8 @@ import re
 import os
 from collections import namedtuple
 
+from bs4 import BeautifulSoup
 
-# YouTube Data API v3
-# https://developers.google.com/youtube/registering_an_application
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY', None)
 
 Video = namedtuple('Video', ('title', 'url'))
 
@@ -22,14 +20,13 @@ class Playlist():
 
     Examples:
         >>> y = Playlist('LISTID')
-        >>> y.videos
+        >>> y.get_videos()
         [Video(title='Some video 1', url='https://www.youtube.com/watch?v=1111'),
          Video(title='Some video 2', url='https://www.youtube.com/watch?v=2222')]
     """
 
-    _max_results_in_request = 50
-    _api_url_template = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults={max_results}&pageToken={next_page_token}&playlistId={list_id}&key={key}'
-    _video_url_template = 'https://www.youtube.com/watch?v=%s'
+    _playlist_url_template = 'https://notyoutube.org/playlist?list={list_id}&page={page}'
+    _video_url_template = 'https://www.youtube.com{href}'
 
 
     def __init__(self, list_id_or_url:str):
@@ -38,14 +35,7 @@ class Playlist():
         else:
             self._list_id = list_id_or_url
 
-        if GOOGLE_API_KEY is None:
-            raise ValueError(
-                'GOOGLE_API_KEY is None, but shoud be a string. Maybe your forget to set env variable?!'
-            )
-        
-
-    @property
-    def videos(self):
+    def get_videos(self) -> list[Video]:
         '''
         get all videos from playlist
 
@@ -54,38 +44,44 @@ class Playlist():
         '''
 
         videos = []
-        next_page_token = ''
+        page = 1
 
         while 1:
-            response = self._send_request(next_page_token)
-            
-            jsn = response.json()
-            videos += self._fetch_videos_from_json(jsn)
-            
-            if 'nextPageToken' not in jsn:
-                break
-            else:
-                next_page_token = jsn['nextPageToken']
-
-        return videos
-
-    def _send_request(self, next_page_token: str=''):
-        return requests.get(
-            self._api_url_template.format(
-                max_results=self._max_results_in_request,
-                next_page_token=next_page_token,
+            response = requests.get(self._playlist_url_template.format(
                 list_id=self._list_id,
-                key=GOOGLE_API_KEY
-            )
-        )
+                page=page
+            ))
+            response.encoding = 'utf-8'
+            if response.status_code != 200:
+                raise ConnectionError(f'request to page={page} status_code={200}')
+            html = response.text
+            with open('a.html', 'w') as f:
+                f.write(html)
+            
+            videos += self._fetch_videos_from_html(html)
+            
+            if self._is_next_page_exist(html):
+                page += 1
+            else:
+                break
 
-    def _fetch_videos_from_json(self, jsn: dict):
-        videos = []
-        items = jsn['items']
-        for item in items:
-            video_id = item['snippet']['resourceId']['videoId']
-            url = self._video_url_template % video_id
-            title = item['snippet']['title']
-            video = Video(title, url)
-            videos.append(video)
         return videos
+
+    def _fetch_videos_from_html(self, html: str) -> list[Video]:
+        videos = []
+        bs = BeautifulSoup(html, 'html.parser')
+        video_divs = bs.find_all('div', attrs={'class': 'pure-u-1 pure-u-md-1-4'})
+        for div in video_divs:
+            a = div.div.a.find('p', recursive=False).a
+            title = a.string
+            url = self._video_url_template.format(href=a.get('href'))
+            videos.append(Video(title, url))
+        return videos
+    
+    def _is_next_page_exist(self, html: str) -> bool:
+        bs = BeautifulSoup(html, 'html.parser')
+        next_page_div = bs.find('div', attrs={
+            'class': 'pure-u-1 pure-u-lg-1-5',
+            'style': 'text-align:right',
+        })
+        return next_page_div.a is not None

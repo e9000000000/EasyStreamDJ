@@ -25,7 +25,7 @@ class Playlist():
          Video(title='Some video 2', url='https://www.youtube.com/watch?v=2222')]
     """
 
-    _playlist_url_template = 'https://notyoutube.org/playlist?list={list_id}&page={page}'
+    _playlist_url_template = 'https://yewtu.be/playlist?list={list_id}&page={page}'
     _video_url_template = 'https://www.youtube.com{href}'
 
 
@@ -55,8 +55,6 @@ class Playlist():
             if response.status_code != 200:
                 raise ConnectionError(f'request to page={page} status_code={200}')
             html = response.text
-            with open('a.html', 'w') as f:
-                f.write(html)
             
             videos += self._fetch_videos_from_html(html)
             

@@ -94,6 +94,4 @@ class Ui():
             sleep(cooldown)
         
         while not self._check_if_sending_ended():
-            print(len(self._threads))
             sleep(1)
-        print('ENDED')

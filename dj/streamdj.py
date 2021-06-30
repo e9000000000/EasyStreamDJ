@@ -51,7 +51,7 @@ class StreamDj():
             "url": video_url,
             "author": self._author_name,
         }
-        responce = requests.post(self._send_url_template % self._channel_id, data=data)
+        responce = requests.post(self._send_url_template % self._channel_id, data=data, timeout=120)
 
         if responce.status_code != 200:
             raise ConnectionError(

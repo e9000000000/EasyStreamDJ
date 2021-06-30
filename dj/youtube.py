@@ -27,6 +27,7 @@ class Playlist():
 
     _playlist_url_template = 'https://yewtu.be/playlist?list={list_id}&page={page}'
     _video_url_template = 'https://www.youtube.com{href}'
+    _video_url_re = re.compile(r'<a style=\"width:100%\" href=\"(/watch\?v=[^&]+).*\"\>[^`]+?<p dir=\"auto\">(.*)</p>')
 
 
     def __init__(self, list_id_or_url:str):
@@ -67,12 +68,8 @@ class Playlist():
 
     def _fetch_videos_from_html(self, html: str) -> list[Video]:
         videos = []
-        bs = BeautifulSoup(html, 'html.parser')
-        video_divs = bs.find_all('div', attrs={'class': 'pure-u-1 pure-u-md-1-4'})
-        for div in video_divs:
-            a = div.div.a.find('p', recursive=False).a
-            title = a.string
-            url = self._video_url_template.format(href=a.get('href'))
+        for href, title in self._video_url_re.findall(html):
+            url = self._video_url_template.format(href=href)
             videos.append(Video(title, url))
         return videos
     

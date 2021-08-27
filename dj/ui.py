@@ -6,13 +6,13 @@ from .youtube import Playlist, Video
 from .streamdj import StreamDj
 
 
-class Ui():
+class Ui:
     """
     Class with user interface
     """
 
-    _hello_message = 'Wellcome to easy stream dj.'
-    _help_message = '''
+    _hello_message = "Wellcome to easy stream dj."
+    _help_message = """
     Wellcome to easy stream dj.
 
     dj.py
@@ -32,10 +32,10 @@ class Ui():
 
         If you leave some of this blank it will be replaced by default that shows you.
 
-    '''
+    """
 
     def __init__(self):
-        self._ex_channel_name = ''
+        self._ex_channel_name = ""
         self._ex_cooldown = 0.0
         self._api_key = None
 
@@ -52,14 +52,13 @@ class Ui():
         while 1:
             self._loop()
 
-
-    def _send_request_and_print_result(self, dj:StreamDj, video:Video):
+    def _send_request_and_print_result(self, dj: StreamDj, video: Video):
         result = dj.send(video.url)
-        if 'error' in result.keys():
+        if "error" in result.keys():
             error = result["error"]
-            result_str = f'{video.title}: {error}'
+            result_str = f"{video.title}: {error}"
         else:
-            result_str = f'{video.title}: Success.'
+            result_str = f"{video.title}: Success."
         print(result_str)
 
     def _check_if_sending_ended(self):
@@ -70,13 +69,13 @@ class Ui():
 
     def _loop(self):
         print()
-        channel_name = input(f'channel name (default={self._ex_channel_name}): ')
-        playlist = input(f'playlist: ')
-        cooldown = input(f'cooldown (default={self._ex_cooldown}): ')
+        channel_name = input(f"channel name (default={self._ex_channel_name}): ")
+        playlist = input("playlist: ")
+        cooldown = input(f"cooldown (default={self._ex_cooldown}): ")
 
-        if channel_name == '':
+        if channel_name == "":
             channel_name = self._ex_channel_name
-        if cooldown == '':
+        if cooldown == "":
             cooldown = self._ex_cooldown
         if type(cooldown) is not float:
             cooldown = float(cooldown)
@@ -88,10 +87,12 @@ class Ui():
         dj = StreamDj(channel_name)
         self._is_sending_ended = False
         for video in videos:
-            thread = Thread(target=self._send_request_and_print_result, args=(dj, video))
+            thread = Thread(
+                target=self._send_request_and_print_result, args=(dj, video)
+            )
             self._threads.append(thread)
             thread.start()
             sleep(cooldown)
-        
+
         while not self._check_if_sending_ended():
             sleep(1)

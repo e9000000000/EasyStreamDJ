@@ -84,6 +84,7 @@ class Ui:
         self._ex_cooldown = cooldown
 
         videos = Playlist(playlist).get_videos()
+        print(f"\n\nVideos fetched: {len(videos)}\n\n")
         dj = StreamDj(channel_name)
         self._is_sending_ended = False
         for video in videos:

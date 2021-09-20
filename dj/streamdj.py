@@ -56,6 +56,10 @@ class StreamDj:
             self._send_url_template % self._channel_id, data=data, timeout=120
         )
 
+        if response.status_code >= 500:
+            sleep(5)
+            return self.send(video_url)
+
         if response.status_code != 200:
             raise ConnectionError(
                 f"try to send {video_url} to {self._channel_name}, status_code={response.status_code}."

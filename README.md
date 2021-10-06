@@ -9,12 +9,7 @@ git clone https://github.com/e6000000000/EasyStreamDJ.git
 python3 -m pip install -r ./EasyStreamDJ/requirements.txt
 ```
 
-# How to run
-```bash
-python3 EasyStreamDJ
-```
-
-## If you need help
+## Run to get further help
 ```bash
 python3 EasyStreamDJ -h
 ```

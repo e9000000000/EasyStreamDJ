@@ -1,4 +1,4 @@
-import sys
+import argparse
 from threading import Thread
 from time import sleep
 
@@ -11,49 +11,63 @@ class Ui:
     Class with user interface
     """
 
-    _hello_message = "Wellcome to easy stream dj."
-    _help_message = """
-    Wellcome to easy stream dj.
-
-    dj.py
-
-    [any args]      print this message
-
-    After script runing:
-        channel name: nickname of streamdj user
-        for example https://streamdj.ru/c/e6000000000 is url e6000000000 is channel name
-
-        playlist: youtube playlist id or url with playlist id
-        for example https://www.youtube.com/playlist?list=AAA_AAAAAA-AAAAAAA is url
-        AAA_AAAAAA-AAAAAAA is playlist id
-
-        cooldown: sleep time before next send
-
-
-        If you leave some of this blank it will be replaced by default that shows you.
-
-    """
-
     def __init__(self):
-        self._ex_channel_name = ""
-        self._ex_cooldown = 0.0
-        self._api_key = None
+        self.parser = argparse.ArgumentParser(description="Easy way to use stream dj.")
+
+        self.parser.add_argument(
+            "user", type=str, help="stream dj user name you want send music to."
+        )
+        self.parser.add_argument(
+            "-p",
+            "--playlist",
+            type=str,
+            help="youtube playlist, all vidios from it will be send to stream dj.",
+        )
+        self.parser.add_argument(
+            "-d",
+            "--delay",
+            type=float,
+            help="delay between sending videos from playlist (float) defalut=0",
+            default=0.0,
+        )
+        self.parser.add_argument(
+            "-q",
+            "--quantity",
+            action="store_true",
+            help="show quantity of videos in stream dj.",
+        )
+        self.parser.add_argument(
+            "-l", "--list", action="store_true", help="show all videos in stream dj."
+        )
+        self.args = self.parser.parse_args()
+        self.dj = StreamDj(self.args.user)
 
         self._threads = []
         self._is_sending_ended = False
 
     def run(self):
-        if sys.argv.__len__() >= 2:
-            print(self._help_message)
-            return
+        if self.args.quantity:
+            quantity = len(self.dj.videos_list())
+            print(f"\n\nvideos quantity: {quantity}\n\n")
+        if self.args.list:
+            for video in self.dj.videos_list():
+                print(f"{video.author}: {video.title}")
+        if self.args.playlist:
+            videos = Playlist(self.args.playlist).get_videos()
+            print(f"\n\nVideos fetched: {len(videos)}\n\n")
+            for video in videos:
+                thread = Thread(
+                    target=self._send_request_and_print_result, args=(video,)
+                )
+                self._threads.append(thread)
+                thread.start()
+                sleep(self.args.delay)
 
-        print(self._hello_message)
+            while not self._check_if_sending_ended():
+                sleep(1)
 
-        while 1:
-            self._loop()
-
-    def _send_request_and_print_result(self, dj: StreamDj, video: Video):
-        result = dj.send(video.url)
+    def _send_request_and_print_result(self, video: Video):
+        result = self.dj.send(video.url)
         if "error" in result.keys():
             error = result["error"]
             result_str = f"{video.title}: {error}"
@@ -66,34 +80,3 @@ class Ui:
             if thread.is_alive():
                 return False
         return True
-
-    def _loop(self):
-        print()
-        channel_name = input(f"channel name (default={self._ex_channel_name}): ")
-        playlist = input("playlist: ")
-        cooldown = input(f"cooldown (default={self._ex_cooldown}): ")
-
-        if channel_name == "":
-            channel_name = self._ex_channel_name
-        if cooldown == "":
-            cooldown = self._ex_cooldown
-        if type(cooldown) is not float:
-            cooldown = float(cooldown)
-
-        self._ex_channel_name = channel_name
-        self._ex_cooldown = cooldown
-
-        videos = Playlist(playlist).get_videos()
-        print(f"\n\nVideos fetched: {len(videos)}\n\n")
-        dj = StreamDj(channel_name)
-        self._is_sending_ended = False
-        for video in videos:
-            thread = Thread(
-                target=self._send_request_and_print_result, args=(dj, video)
-            )
-            self._threads.append(thread)
-            thread.start()
-            sleep(cooldown)
-
-        while not self._check_if_sending_ended():
-            sleep(1)

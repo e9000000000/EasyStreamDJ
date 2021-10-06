@@ -2,6 +2,9 @@ import requests
 import names
 from time import sleep
 import re
+from collections import namedtuple
+
+Video = namedtuple("Video", ("title", "author"))
 
 
 class StreamDj:
@@ -27,9 +30,37 @@ class StreamDj:
 
         self._channel_id = None
         self._channel_url_template = "https://streamdj.ru/c/%s"
+        self._videos_list_url_template = (
+            "https://streamdj.ru/includes/back.php?func=playlist&channel=%s&c="
+        )
         self._send_url_template = (
             "https://streamdj.ru/includes/back.php?func=add_track&channel=%s"
         )
+
+    def videos_list(self) -> list[Video]:
+        """
+        get list of videos from streamdj
+
+        Return:
+            list of namedtuple("Video", ("title", "author"))
+        """
+
+        if self._channel_id is None:
+            self._update_channel_id()
+
+        response = requests.get(self._videos_list_url_template % self._channel_id)
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"cant get videos from {self._channel_name}, status_code={response.status_code}"
+            )
+
+        videos = []
+        jsn = response.json()
+        for i in jsn:
+            video = jsn[i]
+            videos.append(Video(video["title"], video["author"]))
+        return videos
 
     def send(self, video_url: str) -> dict:
         """

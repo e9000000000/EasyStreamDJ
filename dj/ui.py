@@ -18,15 +18,20 @@ class Ui:
             "user", type=str, help="stream dj user name you want send music to."
         )
         self.parser.add_argument(
+            "-v", "--video", type=str, metavar="URL", help="send youtube video"
+        )
+        self.parser.add_argument(
             "-p",
             "--playlist",
             type=str,
+            metavar="URL",
             help="youtube playlist, all vidios from it will be send to stream dj.",
         )
         self.parser.add_argument(
             "-d",
             "--delay",
             type=float,
+            metavar="SECONDS",
             help="delay between sending videos from playlist (float) defalut=0",
             default=0.0,
         )
@@ -52,6 +57,8 @@ class Ui:
         if self.args.list:
             for video in self.dj.videos_list():
                 print(f"{video.author}: {video.title}")
+        if self.args.video:
+            self._send_request_and_print_result(Video("Video", self.args.video))
         if self.args.playlist:
             videos = Playlist(self.args.playlist).get_videos()
             print(f"\n\nVideos fetched: {len(videos)}\n\n")

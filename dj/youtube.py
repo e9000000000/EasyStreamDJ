@@ -34,7 +34,7 @@ class Playlist:
         if "list=" in list_id_or_url:
             regex_result = re.search(r"list=([a-zA-Z0-9-_]+)", list_id_or_url)
             if regex_result is None:
-                raise ValueError(f"invalid arg list_id_or_urd='{list_id_or_url}'")
+                raise ValueError(f"invalid arg {list_id_or_url=}")
             self._list_id = regex_result.group(1)
         else:
             self._list_id = list_id_or_url
@@ -51,12 +51,13 @@ class Playlist:
         page = 1
 
         while 1:
-            response = requests.get(
-                self._playlist_url_template.format(list_id=self._list_id, page=page)
-            )
+            url = self._playlist_url_template.format(list_id=self._list_id, page=page)
+            response = requests.get(url)
             response.encoding = "utf-8"
             if response.status_code != 200:
-                raise ConnectionError(f"request to page={page} status_code={200}")
+                raise ConnectionError(
+                    f"request to {page=} {response.status_code=} {url=}"
+                )
             html = response.text
 
             videos += self._fetch_videos_from_html(html)

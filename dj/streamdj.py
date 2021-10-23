@@ -57,6 +57,9 @@ class StreamDj:
 
         videos = []
         jsn = response.json()
+        if not jsn:
+            return []
+
         for i in jsn:
             video = jsn[i]
             videos.append(Video(video["title"], video["author"]))

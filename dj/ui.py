@@ -51,12 +51,14 @@ class Ui:
         self._is_sending_ended = False
 
     def run(self):
-        if self.args.quantity:
-            quantity = len(self.dj.videos_list())
-            print(f"\n\nvideos quantity: {quantity}\n\n")
-        if self.args.list:
-            for video in self.dj.videos_list():
-                print(f"{video.author}: {video.title}")
+        if self.args.quantity or self.args.list:
+            videos = self.dj.videos_list()
+            if self.args.quantity:
+                quantity = len(videos)
+                print(f"\n\nvideos quantity: {quantity}\n\n")
+            if self.args.list:
+                for video in videos:
+                    print(f"{video.author}: {video.title}")
         if self.args.video:
             self._send_request_and_print_result(Video("Video", self.args.video))
         if self.args.playlist:

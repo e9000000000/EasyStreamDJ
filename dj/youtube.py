@@ -47,7 +47,7 @@ class Playlist:
             namedtuple('Video', ('title', 'url'))
         """
 
-        videos = []
+        videos = set()
         page = 1
 
         while 1:
@@ -60,20 +60,20 @@ class Playlist:
                 )
             html = response.text
 
-            videos += self._fetch_videos_from_html(html)
+            videos.update(self._fetch_videos_from_html(html))
 
             if self._is_next_page_exist(html):
                 page += 1
             else:
                 break
 
-        return videos
+        return list(videos)
 
-    def _fetch_videos_from_html(self, html: str) -> list[Video]:
-        videos = []
+    def _fetch_videos_from_html(self, html: str) -> set[Video]:
+        videos = set()
         for href, title in self._video_url_re.findall(html):
             url = self._video_url_template.format(href=href)
-            videos.append(Video(title, url))
+            videos.add(Video(title, url))
         return videos
 
     def _is_next_page_exist(self, html: str) -> bool:

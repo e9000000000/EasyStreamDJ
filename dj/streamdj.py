@@ -130,7 +130,7 @@ class StreamDj:
     def _request(
         self, url_template: str, url_params: dict, data: dict, proxies: dict = {}
     ) -> dict:
-        url = url_template.format(*url_params)
+        url = url_template.format(**url_params)
 
         response = requests.post(url, data=data, timeout=120, proxies=proxies)
 

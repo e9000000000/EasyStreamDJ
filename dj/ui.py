@@ -44,6 +44,12 @@ class Ui:
         self.parser.add_argument(
             "-l", "--list", action="store_true", help="show all videos in stream dj."
         )
+        self.parser.add_argument(
+            "-s",
+            "--skip",
+            action="store_true",
+            help="(testing) send requests for skiping now playing track in stream dj",
+        )
         self.args = self.parser.parse_args()
         self.dj = StreamDj(self.args.user)
 
@@ -51,14 +57,21 @@ class Ui:
         self._is_sending_ended = False
 
     def run(self):
-        if self.args.quantity or self.args.list:
+        if self.args.quantity or self.args.list or self.args.skip:
             videos = self.dj.videos_list()
             if self.args.quantity:
                 quantity = len(videos)
                 print(f"\n\nvideos quantity: {quantity}\n\n")
             if self.args.list:
                 for video in videos:
-                    print(f"{video.author}: {video.title}")
+                    print(f"{video.author}: {video.title}\n{video.id=} {video.skip=}\n")
+            if self.args.skip and videos:
+                video_id = videos[0].id
+                requests_amount = 1000
+                for _ in range(requests_amount):
+                    Thread(
+                        target=self._vote_skip_and_print_result, args=(video_id,)
+                    ).start()
         if self.args.video:
             self._send_request_and_print_result(Video("Video", self.args.video))
         if self.args.playlist:
@@ -82,6 +95,15 @@ class Ui:
             result_str = f"{video.title}: {error}"
         else:
             result_str = f"{video.title}: Success."
+        print(result_str)
+
+    def _vote_skip_and_print_result(self, video_id: int):
+        result = self.dj.vote_skip(video_id)
+        if "error" in result.keys():
+            error = result["error"]
+            result_str = f"{video_id}: {error}"
+        else:
+            result_str = f"{video_id}: Success."
         print(result_str)
 
     def _check_if_sending_ended(self):

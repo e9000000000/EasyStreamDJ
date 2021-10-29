@@ -2,9 +2,11 @@ import requests
 import names
 from time import sleep
 import re
+import random
 from collections import namedtuple
 
-Video = namedtuple("Video", ("title", "author"))
+
+Video = namedtuple("Video", ("id", "title", "author", "skip"))
 
 
 class StreamDj:
@@ -29,12 +31,16 @@ class StreamDj:
         self._custom_author_name = author_name
 
         self._channel_id = None
-        self._channel_url_template = "https://streamdj.ru/c/%s"
-        self._videos_list_url_template = (
-            "https://streamdj.ru/includes/back.php?func=playlist&channel=%s&c="
-        )
+        self._proxy_list = None
+
+        self._channel_url_template = "https://streamdj.ru/c/{name}"
+        self._videos_list_url_template = "https://streamdj.ru/includes/back.php?func=playlist&channel={channel_id}&c="
         self._send_url_template = (
-            "https://streamdj.ru/includes/back.php?func=add_track&channel=%s"
+            "https://streamdj.ru/includes/back.php?func=add_track&channel={channel_id}"
+        )
+        self._vote_skip_url = "https://streamdj.ru/includes/back.php?func=vote_skip"
+        self._proxy_list_url = (
+            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
         )
 
     def videos_list(self) -> list[Video]:
@@ -48,7 +54,9 @@ class StreamDj:
         if self._channel_id is None:
             self._update_channel_id()
 
-        response = requests.get(self._videos_list_url_template % self._channel_id)
+        response = requests.get(
+            self._videos_list_url_template.format(channel_id=self._channel_id)
+        )
 
         if response.status_code != 200:
             raise ConnectionError(
@@ -62,7 +70,9 @@ class StreamDj:
 
         for i in jsn:
             video = jsn[i]
-            videos.append(Video(video["title"], video["author"]))
+            videos.append(
+                Video(video["id"], video["title"], video["author"], video["skip"])
+            )
         return videos
 
     def send(self, video_url: str) -> dict:
@@ -81,34 +91,35 @@ class StreamDj:
 
         if self._channel_id is None:
             self._update_channel_id()
-
-        data = {
-            "url": video_url,
-            "author": self._author_name,
-        }
-        response = requests.post(
-            self._send_url_template % self._channel_id, data=data, timeout=120
+        return self._request(
+            self._send_url_template,
+            {"channel_id": self._channel_id},
+            {
+                "url": video_url,
+                "author": self._author_name,
+            },
         )
 
-        if response.status_code >= 500:
-            sleep(5)
-            return self.send(video_url)
+    def vote_skip(self, video_id: int) -> None:
+        if self._proxy_list is None:
+            self._update_proxy_list()
+        if self._channel_id is None:
+            self._update_channel_id()
 
-        if response.status_code != 200:
-            raise ConnectionError(
-                f"try to send {video_url} to {self._channel_name}, status_code={response.status_code}."
-            )
+        if not len(self._proxy_list):
+            return {"error": "proxies ended"}
 
-        try:
-            return response.json()
-        except Exception:  # if response not in json format
-            if "Technical problems, come back later." in response.text:
-                sleep(5)
-                return self.send(video_url)
-            else:
-                return {
-                    "error": f"Does not sended cuz streamdj.ru is great. response: {response.text}"
-                }
+        proxy = random.choice(self._proxy_list)
+        self._proxy_list.remove(proxy)
+        return self._request(
+            self._vote_skip_url,
+            {},
+            {
+                "channel": str(self._channel_id),
+                "track_id": str(video_id),
+            },
+            {"https": f"http://{proxy}"},
+        )
 
     @property
     def _author_name(self):
@@ -116,8 +127,45 @@ class StreamDj:
             return self._custom_author_name
         return names.get_full_name()
 
+    def _request(
+        self, url_template: str, url_params: dict, data: dict, proxies: dict = {}
+    ) -> dict:
+        url = url_template.format(*url_params)
+
+        response = requests.post(url, data=data, timeout=120, proxies=proxies)
+
+        if response.status_code >= 500:
+            sleep(5)
+            return self._request(url_template, url_params, data)
+
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"try to send {url} to {self._channel_name}, status_code={response.status_code}."
+            )
+
+        try:
+            return response.json()
+        except Exception:  # if response not in json format
+            if "Technical problems, come back later." in response.text:
+                sleep(5)
+                return self._request(url_template, url_params, data)
+            else:
+                return {
+                    "error": f"Does not sended cuz streamdj.ru is great. response: {response.text}"
+                }
+
+    def _update_proxy_list(self):
+        response = requests.get(self._proxy_list_url)
+
+        if response.status_code != 200:
+            raise ConnectionError(f"cant get proxy list {response.status_code=}")
+
+        self._proxy_list = response.text.split("\n")
+
     def _update_channel_id(self):
-        response = requests.get(self._channel_url_template % self._channel_name)
+        response = requests.get(
+            self._channel_url_template.format(name=self._channel_name)
+        )
 
         if response.status_code == 404:
             raise ValueError(f"channel with name={self._channel_name} does not exist.")

@@ -2,6 +2,8 @@
 Now you can send all playlist of music by one click.
 Works only if music requests is free.
 
+proxy list from [here](https://github.com/TheSpeedX/PROXY-List)
+
 # Installation
 Install [python](https://www.python.org/downloads/)
 ```bash

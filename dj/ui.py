@@ -12,10 +12,10 @@ class Ui:
     """
 
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="Easy way to use stream dj.")
+        self.parser = argparse.ArgumentParser(description="Easy way to use stream dj")
 
         self.parser.add_argument(
-            "user", type=str, help="stream dj user name you want send music to."
+            "user", type=str, help="stream dj user name you want send music to"
         )
         self.parser.add_argument(
             "-v", "--video", type=str, metavar="URL", help="send youtube video"
@@ -25,7 +25,7 @@ class Ui:
             "--playlist",
             type=str,
             metavar="URL",
-            help="youtube playlist, all vidios from it will be send to stream dj.",
+            help="youtube playlist, all vidios from it will be send to stream dj",
         )
         self.parser.add_argument(
             "-d",
@@ -42,7 +42,7 @@ class Ui:
             help="show quantity of videos in stream dj.",
         )
         self.parser.add_argument(
-            "-l", "--list", action="store_true", help="show all videos in stream dj."
+            "-l", "--list", action="store_true", help="show all videos in stream dj"
         )
         self.parser.add_argument(
             "-s",
@@ -50,8 +50,15 @@ class Ui:
             action="store_true",
             help="(testing) send requests for skiping now playing track in stream dj",
         )
+        self.parser.add_argument(
+            "-a",
+            "--author",
+            type=str,
+            metavar="NAME",
+            help="author name of track sender",
+        )
         self.args = self.parser.parse_args()
-        self.dj = StreamDj(self.args.user)
+        self.dj = StreamDj(self.args.user, self.args.author)
 
         self._threads = []
         self._is_sending_ended = False

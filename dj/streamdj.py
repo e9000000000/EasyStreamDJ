@@ -100,7 +100,7 @@ class StreamDj:
             },
         )
 
-    def vote_skip(self, video_id: int) -> None:
+    def vote_skip(self, video_id: int) -> dict:
         if self._proxy_list is None:
             self._update_proxy_list()
         if self._channel_id is None:

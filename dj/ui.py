@@ -57,7 +57,7 @@ class Ui:
             metavar="NAME",
             help="author name of track sender",
         )
-        self.args = self.parser.parse_args()
+        self.args = self.parser.parse_known_args()[0]
         self.dj = StreamDj(self.args.user, self.args.author)
 
         self._threads = []

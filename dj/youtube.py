@@ -50,7 +50,7 @@ class Playlist:
         videos = set()
         page = 1
 
-        while 1:
+        while True:
             url = self._playlist_url_template.format(list_id=self._list_id, page=page)
             response = requests.get(url)
             response.encoding = "utf-8"

@@ -28,6 +28,13 @@ class Ui:
             help="youtube playlist, all vidios from it will be send to stream dj",
         )
         self.parser.add_argument(
+            "-P",
+            "--playlistsearch",
+            type=str,
+            metavar="TEXT",
+            help="same as --playlist, but it'll search for a playlist in youtube",
+        )
+        self.parser.add_argument(
             "-d",
             "--delay",
             type=float,
@@ -81,7 +88,9 @@ class Ui:
                     ).start()
         if self.args.video:
             self._send_request_and_print_result(Video("Video", self.args.video))
-        if self.args.playlist:
+        if self.args.playlist or self.args.playlistsearch:
+            if self.args.playlistsearch:
+                self.args.playlist = self._chouse_playlist()
             videos = Playlist(self.args.playlist).get_videos()
             print(f"\n\nVideos fetched: {len(videos)}\n\n")
             for video in videos:
@@ -94,6 +103,18 @@ class Ui:
 
             while not self._check_if_sending_ended():
                 sleep(1)
+
+    def _chouse_playlist(self) -> Playlist:
+        text = self.args.playlistsearch
+        lists = Playlist.search(text)
+        print()
+        for i, lst in enumerate(lists):
+            print(f"[{i}] - videos({lst['amount']}): ", lst["name"])
+        try:
+            i = int(input("chouse (blank or trash=0): "))
+        except:
+            i = 0
+        return lists[i]["url"]
 
     def _send_request_and_print_result(self, video: Video):
         result = self.dj.send(video.url)

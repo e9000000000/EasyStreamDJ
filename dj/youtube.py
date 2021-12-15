@@ -1,6 +1,7 @@
 import requests
 import re
 from collections import namedtuple
+from lxml import html
 
 from bs4 import BeautifulSoup
 
@@ -24,6 +25,7 @@ class Playlist:
          Video(title='Some video 2', url='https://www.youtube.com/watch?v=2222')]
     """
 
+    _playlist_search_url_template = "https://yewtu.be/search?q={text} content_type%3Aplaylist"
     _playlist_url_template = "https://yewtu.be/playlist?list={list_id}&page={page}"
     _video_url_template = "https://www.youtube.com{href}"
     _video_url_re = re.compile(
@@ -39,6 +41,42 @@ class Playlist:
         else:
             self._list_id = list_id_or_url
 
+    @staticmethod
+    def search(text: str) -> list:
+        """search for a youtube playlist and return it"""
+
+        url = Playlist._playlist_search_url_template.format(text=text)
+        response = requests.get(url)
+        response.encoding = "utf-8"
+        if response.status_code != 200:
+            raise ConnectionError(
+                f"request to {page=} {response.status_code=} {url=}"
+            )
+        html = response.text
+        bs = BeautifulSoup(html, "html.parser")
+        divs = bs.find_all(
+            "div",
+            attrs={
+                "class": "pure-u-1 pure-u-md-1-4",
+            },
+        )
+
+        results = []
+        for div in divs:
+            a = div.div.a
+            url = a.attrs["href"]
+            p_amount, p_name = a.find_all("p")
+            amount = int(p_amount.text.split()[0])
+            name = p_name.text
+            results.append({
+                "url": url,
+                "amount": amount,
+                "name": name,
+            })
+        return results
+        
+
+        
     def get_videos(self) -> list[Video]:
         """
         get all videos from playlist

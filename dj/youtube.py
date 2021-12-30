@@ -1,7 +1,6 @@
 import requests
 import re
 from collections import namedtuple
-from lxml import html
 
 from bs4 import BeautifulSoup
 
@@ -50,7 +49,7 @@ class Playlist:
         response.encoding = "utf-8"
         if response.status_code != 200:
             raise ConnectionError(
-                f"request to {page=} {response.status_code=} {url=}"
+                f"search {response.status_code=} {url=}"
             )
         html = response.text
         bs = BeautifulSoup(html, "html.parser")
@@ -123,4 +122,4 @@ class Playlist:
                 "style": "text-align:right",
             },
         )
-        return next_page_div.a is not None
+        return getattr(next_page_div, "a") is not None

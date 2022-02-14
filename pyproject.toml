@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "easy_streamdj"
+version = "0.1.0"
+description = ""
+authors = ["a <skipper224483@gmail.com>"]
+license = "GPL-3.0"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+beautifulsoup4 = "*"
+names = "*"
+requests = "*"
+
+[tool.poetry.dev-dependencies]
+black = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

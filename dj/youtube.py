@@ -24,7 +24,9 @@ class Playlist:
          Video(title='Some video 2', url='https://www.youtube.com/watch?v=2222')]
     """
 
-    _playlist_search_url_template = "https://yewtu.be/search?q={text} content_type%3Aplaylist"
+    _playlist_search_url_template = (
+        "https://yewtu.be/search?q={text} content_type%3Aplaylist"
+    )
     _playlist_url_template = "https://yewtu.be/playlist?list={list_id}&page={page}"
     _video_url_template = "https://www.youtube.com{href}"
     _video_url_re = re.compile(
@@ -48,9 +50,7 @@ class Playlist:
         response = requests.get(url)
         response.encoding = "utf-8"
         if response.status_code != 200:
-            raise ConnectionError(
-                f"search {response.status_code=} {url=}"
-            )
+            raise ConnectionError(f"search {response.status_code=} {url=}")
         html = response.text
         bs = BeautifulSoup(html, "html.parser")
         divs = bs.find_all(
@@ -67,15 +67,15 @@ class Playlist:
             p_amount, p_name = a.find_all("p")
             amount = int(p_amount.text.split()[0])
             name = p_name.text
-            results.append({
-                "url": url,
-                "amount": amount,
-                "name": name,
-            })
+            results.append(
+                {
+                    "url": url,
+                    "amount": amount,
+                    "name": name,
+                }
+            )
         return results
-        
 
-        
     def get_videos(self) -> list[Video]:
         """
         get all videos from playlist

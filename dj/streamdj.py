@@ -1,3 +1,4 @@
+import errno
 import requests
 import names
 from time import sleep
@@ -38,7 +39,7 @@ class StreamDj:
         self._send_url_template = (
             "https://streamdj.ru/includes/back.php?func=add_track&channel={channel_id}"
         )
-        self._vote_skip_url = "https://streamdj.ru/includes/back.php?func=vote_skip"
+        self._vote_skip_url = "http://streamdj.ru/includes/back.php?func=vote_skip"
         self._proxy_list_url = (
             "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
         )
@@ -111,15 +112,18 @@ class StreamDj:
 
         proxy = random.choice(self._proxy_list)
         self._proxy_list.remove(proxy)
-        return self._request(
-            self._vote_skip_url,
-            {},
-            {
-                "channel": str(self._channel_id),
-                "track_id": str(video_id),
-            },
-            {"https": f"http://{proxy}"},
-        )
+        proxies = {"http": f"http://{proxy}"}
+        data = {
+            "channel": str(self._channel_id),
+            "track_id": str(video_id),
+        }
+        while True:
+            try:
+                return self._request(self._vote_skip_url, {}, data, proxies)
+            except OSError as e:
+                if e.errno != errno.ETOOMANYREFS:
+                    raise e
+                sleep(10)
 
     @property
     def _author_name(self):
@@ -153,6 +157,13 @@ class StreamDj:
                 return {
                     "error": f"Does not sended cuz streamdj.ru is great. response: {response.text}"
                 }
+
+    def proxy_amount(self):
+        if self._proxy_list is None:
+            self._update_proxy_list()
+        return len(self._proxy_list)
+
+
 
     def _update_proxy_list(self):
         response = requests.get(self._proxy_list_url)

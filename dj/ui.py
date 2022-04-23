@@ -81,8 +81,7 @@ class Ui:
                     print(f"{video.author}: {video.title}\n{video.id=} {video.skip=}\n")
             if self.args.skip and videos:
                 video_id = videos[0].id
-                requests_amount = 1000
-                for _ in range(requests_amount):
+                for _ in range(self.dj.proxy_amount()):
                     Thread(
                         target=self._vote_skip_and_print_result, args=(video_id,)
                     ).start()

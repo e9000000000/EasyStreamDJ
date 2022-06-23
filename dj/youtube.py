@@ -1,10 +1,11 @@
-import requests
 import re
 from collections import namedtuple
 
+import aiohttp
 from bs4 import BeautifulSoup
 
 
+PlaylistSearchResult = namedtuple("PlaylistSearchResult", ("name", "url", "videos_amount"))
 Video = namedtuple("Video", ("title", "url"))
 
 
@@ -37,28 +38,27 @@ class Playlist:
         if "list=" in list_id_or_url:
             regex_result = re.search(r"list=([a-zA-Z0-9-_]+)", list_id_or_url)
             if regex_result is None:
-                raise ValueError(f"invalid arg {list_id_or_url=}")
+                raise ValueError(f"invalid argument {list_id_or_url=}")
             self._list_id = regex_result.group(1)
         else:
             self._list_id = list_id_or_url
 
     @staticmethod
-    def search(text: str) -> list:
-        """search for a youtube playlist and return it"""
+    async def search(text: str) -> list[PlaylistSearchResult]:
+        """search for a youtube playlists and return list of them"""
 
         url = Playlist._playlist_search_url_template.format(text=text)
-        response = requests.get(url)
-        response.encoding = "utf-8"
-        if response.status_code != 200:
-            raise ConnectionError(f"search {response.status_code=} {url=}")
-        html = response.text
-        bs = BeautifulSoup(html, "html.parser")
-        divs = bs.find_all(
-            "div",
-            attrs={
-                "class": "pure-u-1 pure-u-md-1-4",
-            },
-        )
+        async with aiohttp.request("GET", url) as response:
+            if response.status // 100 != 2:
+                raise ConnectionError(f"search {response.status=} {url=}")
+            html = await response.text()
+            bs = BeautifulSoup(html, "html.parser")
+            divs = bs.find_all(
+                "div",
+                attrs={
+                    "class": "pure-u-1 pure-u-md-1-4",
+                },
+            )
 
         results = []
         for div in divs:
@@ -68,41 +68,35 @@ class Playlist:
             amount = int(p_amount.text.split()[0])
             name = p_name.text
             results.append(
-                {
-                    "url": url,
-                    "amount": amount,
-                    "name": name,
-                }
+                PlaylistSearchResult(
+                    name = name,
+                    url = url,
+                    videos_amount = amount,
+                )
             )
         return results
 
-    def get_videos(self) -> list[Video]:
-        """
-        get all videos from playlist
-
-        Return:
-            namedtuple('Video', ('title', 'url'))
-        """
+    async def get_videos(self) -> list[Video]:
+        """get all videos from playlist"""
 
         videos = set()
         page = 1
 
         while True:
             url = self._playlist_url_template.format(list_id=self._list_id, page=page)
-            response = requests.get(url)
-            response.encoding = "utf-8"
-            if response.status_code != 200:
-                raise ConnectionError(
-                    f"request to {page=} {response.status_code=} {url=}"
-                )
-            html = response.text
+            async with aiohttp.request("GET", url) as response:
+                if response.status != 200:
+                    raise ConnectionError(
+                        f"request to {page=} {response.status=} {url=}"
+                    )
+                html = await response.text()
 
-            videos.update(self._fetch_videos_from_html(html))
+                videos.update(self._fetch_videos_from_html(html))
 
-            if self._is_next_page_exist(html):
-                page += 1
-            else:
-                break
+                if self._is_next_page_exist(html):
+                    page += 1
+                else:
+                    break
 
         return list(videos)
 

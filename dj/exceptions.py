@@ -1,0 +1,1 @@
+class StreamDjException(Exception): pass

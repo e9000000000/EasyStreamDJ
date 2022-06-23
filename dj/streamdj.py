@@ -1,13 +1,16 @@
 import errno
-import requests
-import names
-from time import sleep
 import re
 import random
 from collections import namedtuple
+from time import sleep
+
+import aiohttp
+import names
+
+from exceptions import StreamDjException
 
 
-Video = namedtuple("Video", ("id", "title", "author", "skip"))
+Track = namedtuple("Video", ("id", "title", "author", "skip"))
 
 
 class StreamDj:
@@ -27,99 +30,97 @@ class StreamDj:
         {'success': 1}
     """
 
-    def __init__(self, channel_name: str, author_name: str = None):
+    _channel_url_template = "https://streamdj.ru/c/{name}"
+    _videos_list_url_template = "https://streamdj.ru/includes/back.php?func=playlist&channel={channel_id}&c="
+    _send_url_template = (
+        "https://streamdj.ru/includes/back.php?func=add_track&channel={channel_id}"
+    )
+    _vote_skip_url = "http://streamdj.ru/includes/back.php?func=vote_skip"
+    _proxy_list_url = (
+        "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
+    )
+
+    def __init__(self, channel_name: str, author_name: str | None = None):
         self._channel_name = channel_name
         self._custom_author_name = author_name
 
-        self._channel_id = None
-        self._proxy_list = None
+        self._channel_id: str | None = None
+        self._proxies: list[str] | None = None
 
-        self._channel_url_template = "https://streamdj.ru/c/{name}"
-        self._videos_list_url_template = "https://streamdj.ru/includes/back.php?func=playlist&channel={channel_id}&c="
-        self._send_url_template = (
-            "https://streamdj.ru/includes/back.php?func=add_track&channel={channel_id}"
-        )
-        self._vote_skip_url = "http://streamdj.ru/includes/back.php?func=vote_skip"
-        self._proxy_list_url = (
-            "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt"
-        )
 
-    def videos_list(self) -> list[Video]:
+    async def track_list(self) -> list[Track]:
         """
-        get list of videos from streamdj
+        get list of tracks from streamdj
 
         Return:
             list of namedtuple("Video", ("title", "author"))
         """
 
-        if self._channel_id is None:
-            self._update_channel_id()
+        await self._update_channel_id()
 
-        response = requests.get(
-            self._videos_list_url_template.format(channel_id=self._channel_id)
-        )
+        url = self._videos_list_url_template.format(channel_id=self._channel_id)
 
-        if response.status_code != 200:
-            raise ConnectionError(
-                f"cant get videos from {self._channel_name}, status_code={response.status_code}"
-            )
+        async with aiohttp.request("GET", url) as response:
 
-        videos = []
-        jsn = response.json()
+            if response.status // 100 != 2:
+                raise ConnectionError(
+                    f"cant get videos from {self._channel_name}, status_code={response.status}"
+                )
+
+        tracks = []
+        jsn = await response.json()
         if not jsn:
             return []
 
         for i in jsn:
-            video = jsn[i]
-            videos.append(
-                Video(video["id"], video["title"], video["author"], video["skip"])
+            track = jsn[i]
+            tracks.append(
+                Track(track["id"], track["title"], track["author"], track["skip"])
             )
-        return videos
+        return tracks
 
-    def send(self, video_url: str) -> dict:
+    async def send(self, track_url: str):
         """
-        send video to streamdj and return a result
+        send track to streamdj and return a result
 
         Args:
-            video_url: str - youtube video url
+            track_url: str - youtube video url
             looks like `https://www.youtube.com/watch?v=POb02mjj2zE`
 
-        Return:
-            a dict object. can be:
-                {'success': 1} - if success
-                {'error': 'reason why'} - if error
+        raise `StreamDjException` if track is not sended
         """
 
-        if self._channel_id is None:
-            self._update_channel_id()
-        return self._request(
+        await self._update_channel_id()
+
+        response = await self._request(
             self._send_url_template,
             {"channel_id": self._channel_id},
             {
-                "url": video_url,
+                "url": track_url,
                 "author": self._author_name,
             },
         )
+        error = response.get("error", None)
+        if error is not None:
+            raise StreamDjException(error)
 
-    def vote_skip(self, video_id: int) -> dict:
-        if self._proxy_list is None:
-            self._update_proxy_list()
-        if self._channel_id is None:
-            self._update_channel_id()
+    async def vote_skip(self, video_id: int):
+        await self._update_proxy_list()
+        await self._update_channel_id()
 
-        if not len(self._proxy_list):
-            return {"error": "proxies ended"}
+        if not self.get_proxy_amount():
+            raise StreamDjException("no proxies")
 
-        proxy = random.choice(self._proxy_list)
-        self._proxy_list.remove(proxy)
-        proxies = {"http": f"http://{proxy}"}
+        proxy = random.choice(self._proxies)
+        self._proxies.remove(proxy)
+        proxy = f"http://{proxy}"
         data = {
             "channel": str(self._channel_id),
             "track_id": str(video_id),
         }
         while True:
             try:
-                return self._request(self._vote_skip_url, {}, data, proxies)
+                return self._request(self._vote_skip_url, {}, data, proxy)
             except OSError as e:
                 if e.errno != errno.ETOOMANYREFS:
                     raise e
@@ -131,61 +132,74 @@ class StreamDj:
             return self._custom_author_name
         return names.get_full_name()
 
-    def _request(
-        self, url_template: str, url_params: dict, data: dict, proxies: dict = {}
+    async def _request(
+        self, url_template: str, url_params: dict, data: dict, proxy: str | None = None
     ) -> dict:
         url = url_template.format(**url_params)
 
-        response = requests.post(url, data=data, timeout=120, proxies=proxies)
+        async with aiohttp.request("POST", url, data=data, proxy=proxy, timeout=60) as response:
 
-        if response.status_code >= 500:
-            sleep(5)
-            return self._request(url_template, url_params, data)
-
-        if response.status_code != 200:
-            raise ConnectionError(
-                f"try to send {url} to {self._channel_name}, status_code={response.status_code}."
-            )
-
-        try:
-            return response.json()
-        except Exception:  # if response not in json format
-            if "Technical problems, come back later." in response.text:
+            if response.status >= 500:
                 sleep(5)
-                return self._request(url_template, url_params, data)
-            else:
-                return {
-                    "error": f"Does not sended cuz streamdj.ru is great. response: {response.text}"
-                }
+                return await self._request(url_template, url_params, data, proxy)
 
-    def proxy_amount(self):
-        if self._proxy_list is None:
-            self._update_proxy_list()
-        return len(self._proxy_list)
+            if response.status // 100 != 2:
+                raise ConnectionError(
+                    f"error while sending request {url=} to {self._channel_name=}, {response.status=}."
+                )
+
+            try:
+                return await response.json()
+            except Exception:  # if response not in json format
+                text = await response.text()
+                if "Technical problems, come back later." in text:
+                    sleep(5)
+                    return await self._request(url_template, url_params, data, proxy)
+                else:
+                    return {
+                        "error": f"Does not sended cuz streamdj.ru is great. response: {text}"
+                    }
+
+    async def get_proxy_amount(self):
+        await self._update_proxy_list()
+        return len(self._proxies)
 
 
+    async def _update_proxy_list(self, force=False):
+        """get proxy list from github repository if `self._proxies` is None or force is True"""
 
-    def _update_proxy_list(self):
-        response = requests.get(self._proxy_list_url)
+        if not force and self._proxies is not None:
+            return
 
-        if response.status_code != 200:
-            raise ConnectionError(f"cant get proxy list {response.status_code=}")
+        url = self._proxy_list_url
+        async with aiohttp.request("GET", url) as response:
 
-        self._proxy_list = response.text.split("\n")
 
-    def _update_channel_id(self):
-        response = requests.get(
-            self._channel_url_template.format(name=self._channel_name)
-        )
+            if response.status // 100 != 2:
+                raise ConnectionError(f"cant get proxy list {response.status=}")
 
-        if response.status_code == 404:
-            raise ValueError(f"channel with name={self._channel_name} does not exist.")
-        elif response.status_code != 200:
-            raise ConnectionError(f"status_code={response.status_code}")
+            text = await response.text()
 
-        result = re.search(r"onclick=\"add_track\(([0-9]+)\)\"", response.text)
+        self._proxies = text.splitlines()
 
+    async def _update_channel_id(self, force=False):
+        """get channel id if `self._channel_id` is `None` or force is True"""
+
+        if not force and self._channel_id is not None:
+            return
+
+        url = self._channel_url_template.format(name=self._channel_name)
+        async with aiohttp.request("GET", url) as response:
+
+            if response.status == 404:
+                raise ValueError(f"channel with {self._channel_name=} does not exist.")
+            elif response.status // 100 != 2:
+                raise ConnectionError(f"can't update channel id {response.status=}")
+
+            text = await response.text()
+
+        result = re.search(r"onclick=\"add_track\(([0-9]+)\)\"", text)
         if result is None:
-            raise ValueError(f"cant find channel id. channel_name={self._channel_name}")
+            raise ValueError(f"cant find channel id. {self._channel_name=}")
 
         self._channel_id = result.group(1)

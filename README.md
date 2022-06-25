@@ -12,7 +12,7 @@ pip install easy-streamdj
 ## Usage examples
 get some help:
 ```bash
-python -m easy_streamdj
+python -m easy-streamdj
 ```
 
 send one track:
@@ -39,14 +39,14 @@ python -m easy-streamdj some_channel --skip
 run easy streamdj over tor (linux):
 ```bash
 sudo systemctl start tor  # start tor service if it is not started already
-torify python -m easy_streamdj some_channel -P "bad music" --delay 12 --author "anonymous"
+torify python -m easy-streamdj some_channel -P "bad music" --delay 12 --author "anonymous"
 ```
 
 ## Install from source
 Install [python3.10+](https://www.python.org/downloads/)
 ```bash
-git clone https://github.com/e6000000000/easy_streamdj.git
-cd easy_streamdj
+git clone https://github.com/e6000000000/easy-streamdj.git
+cd easy-streamdj
 pip install poetry
 poetry build
 pip install dist/*.whl

@@ -1,9 +1,11 @@
 [tool.poetry]
 name = "easy_streamdj"
-version = "1.0.1"
+version = "1.0.2"
 description = "script for sending all youtube playlist to streamdj.app"
 authors = ["a <skipper224483@gmail.com>"]
 license = "GPL-3.0"
+repository = "https://github.com/e9000000000/easy_streamdj"
+readme = "README.md"
 
 packages = [
 	{ include = "easy_streamdj" }

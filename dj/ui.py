@@ -1,9 +1,9 @@
 import argparse
-from threading import Thread
-from time import sleep
+import asyncio
 
 from .youtube import Playlist, Video
 from .streamdj import StreamDj
+from .exceptions import StreamDjException
 
 
 class Ui:
@@ -46,10 +46,10 @@ class Ui:
             "-q",
             "--quantity",
             action="store_true",
-            help="show quantity of videos in stream dj.",
+            help="show quantity of tracks in stream dj.",
         )
         self.parser.add_argument(
-            "-l", "--list", action="store_true", help="show all videos in stream dj"
+            "-l", "--list", action="store_true", help="show all tracks in stream dj"
         )
         self.parser.add_argument(
             "-s",
@@ -70,71 +70,61 @@ class Ui:
         self._threads = []
         self._is_sending_ended = False
 
-    def run(self):
+    async def run(self):
+        await self.dj.update_channel_id()
         if self.args.quantity or self.args.list or self.args.skip:
-            videos = self.dj.videos_list()
+            tracks = await self.dj.track_list()
             if self.args.quantity:
-                quantity = len(videos)
-                print(f"\n\nvideos quantity: {quantity}\n\n")
+                quantity = len(tracks)
+                print(f"\n\ntracks quantity: {quantity}\n\n")
             if self.args.list:
-                for video in videos:
-                    print(f"{video.author}: {video.title}\n{video.id=} {video.skip=}\n")
-            if self.args.skip and videos:
-                video_id = videos[0].id
-                for _ in range(self.dj.get_proxy_amount()):
-                    Thread(
-                        target=self._vote_skip_and_print_result, args=(video_id,)
-                    ).start()
+                for track in tracks:
+                    print(f"{track.author}: {track.title}\n{track.id=} {track.skip=}\n")
+            if self.args.skip and tracks:
+                await self.dj.update_proxy_list()
+                track_id = tracks[0].id
+                tasks = []
+                for _ in range(await self.dj.get_proxy_amount()):
+                    tasks.append(asyncio.create_task(self._vote_skip_and_print_result(track_id)))
+                for task in tasks:
+                    await task
         if self.args.video:
-            self._send_request_and_print_result(Video("Video", self.args.video))
+            await self._send_request_and_print_result(Video("Video", self.args.video))
         if self.args.playlist or self.args.playlistsearch:
             if self.args.playlistsearch:
-                self.args.playlist = self._chouse_playlist()
-            videos = Playlist(self.args.playlist).get_videos()
-            print(f"\n\nVideos fetched: {len(videos)}\n\n")
-            for video in videos:
-                thread = Thread(
-                    target=self._send_request_and_print_result, args=(video,)
-                )
-                self._threads.append(thread)
-                thread.start()
-                sleep(self.args.delay)
+                self.args.playlist = await self._chouse_playlist()
+            tracks = await Playlist(self.args.playlist).get_videos()
+            print(f"\n\nVideos fetched: {len(tracks)}\n\n")
+            tasks = []
+            for track in tracks:
+                tasks.append(asyncio.create_task(self._send_request_and_print_result(track)))
+                await asyncio.sleep(self.args.delay)
 
-            while not self._check_if_sending_ended():
-                sleep(1)
+            for task in tasks:
+                await task
 
-    def _chouse_playlist(self) -> Playlist:
+    async def _chouse_playlist(self) -> Playlist:
         text = self.args.playlistsearch
-        lists = Playlist.search(text)
+        lists = await Playlist.search(text)
         print()
         for i, lst in enumerate(lists):
-            print(f"[{i}] - videos({lst['amount']}): ", lst["name"])
+            print(f"[{i}] - videos({lst.videos_amount}): {lst.name}")
         try:
             i = int(input("chouse (blank or trash=0): "))
         except:
             i = 0
-        return lists[i]["url"]
+        return lists[i].url
 
-    def _send_request_and_print_result(self, video: Video):
-        result = self.dj.send(video.url)
-        if "error" in result.keys():
-            error = result["error"]
-            result_str = f"{video.title}: {error}"
-        else:
-            result_str = f"{video.title}: Success."
-        print(result_str)
+    async def _send_request_and_print_result(self, video: Video):
+        try:
+            await self.dj.send(video.url)
+            print(f"success sended: {video.title}")
+        except StreamDjException as e:
+            print(f"error while sending: {video.title=} {e=}")
 
-    def _vote_skip_and_print_result(self, video_id: int):
-        result = self.dj.vote_skip(video_id)
-        if "error" in result.keys():
-            error = result["error"]
-            result_str = f"{video_id}: {error}"
-        else:
-            result_str = f"{video_id}: Success."
-        print(result_str)
-
-    def _check_if_sending_ended(self):
-        for thread in self._threads:
-            if thread.is_alive():
-                return False
-        return True
+    async def _vote_skip_and_print_result(self, track_id: int):
+        try:
+            await self.dj.vote_skip(track_id)
+            print(f"success skip request: {track_id}")
+        except StreamDjException as e:
+            print(f"error while skiping: {track_id=} {e=}")

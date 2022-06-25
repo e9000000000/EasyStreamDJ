@@ -1,6 +1,6 @@
 import asyncio
 
-from dj.ui import Ui
+from .ui import Ui
 
 
 if __name__ == "__main__":

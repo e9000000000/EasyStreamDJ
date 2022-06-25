@@ -16,11 +16,11 @@ Track = namedtuple("Video", ("id", "title", "author", "skip"))
 
 class StreamDj:
     """
-    class to work with streamdj.ru
+    class to work with streamdj.app
 
     Args:
         channel_name: str - nickname of streamdj user
-        for example https://streamdj.ru/c/e6000000000 is url e6000000000 is channel name
+        for example https://streamdj.app/c/e6000000000 is url e6000000000 is channel name
 
         author_name: str - name that will shows as a sender of music
         if leave it `None` it will generates by names lib. generated names looks like `Victor Owens` `Regina Franks`
@@ -161,7 +161,7 @@ class StreamDj:
                     return await self._request(url_template, url_params, data, proxy)
                 else:
                     return {
-                        "error": f"Does not sended cuz streamdj.ru is great. response: {text}"
+                        "error": f"Does not sended cuz streamdj.app is great. response: {text}"
                     }
 
     async def get_proxy_amount(self):

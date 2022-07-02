@@ -30,9 +30,10 @@ class Playlist:
     )
     _playlist_url_template = "https://yewtu.be/playlist?list={list_id}&page={page}"
     _video_url_template = "https://www.youtube.com{href}"
-    _video_url_re = re.compile(
+    _video_from_playlist_re = re.compile(
         r"<a style=\"width:100%\" href=\"(/watch\?v=[^&]+).*\"\>[^`]+?<p dir=\"auto\">(.*)</p>"
     )
+    _video_from_mix_re = re.compile(r"<a href=(\"\/watch\?v=[^&]+)[^`]+?<p dir=\"auto\">(.+)<\/p>")
 
     def __init__(self, list_id_or_url: str):
         if "list=" in list_id_or_url:
@@ -102,9 +103,13 @@ class Playlist:
 
     def _fetch_videos_from_html(self, html: str) -> set[Video]:
         videos = set()
-        for href, title in self._video_url_re.findall(html):
+        for href, title in self._video_from_playlist_re.findall(html):
             url = self._video_url_template.format(href=href)
             videos.add(Video(title, url))
+        if not videos:
+            for href, title in self._video_from_mix_re.findall(html):
+                url = self._video_url_template.format(href=href)
+                videos.add(Video(title, url))
         return videos
 
     def _is_next_page_exist(self, html: str) -> bool:
@@ -116,4 +121,4 @@ class Playlist:
                 "style": "text-align:right",
             },
         )
-        return getattr(next_page_div, "a") is not None
+        return getattr(next_page_div, "a", None) is not None
